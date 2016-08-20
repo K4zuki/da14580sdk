@@ -1,1 +1,34 @@
-/home/yamamoto/.pandoc/pandoc_misc/Makefile.in
+# USERNAME=
+# HOME=
+
+ifeq ($(OS),Windows_NT)
+HOME = C:/Users/$(USERNAME)
+CABAL = C:/Users/Kazuki/AppData/Roaming/cabal
+PCROSSREF = $(CABAL)/bin/pandoc-crossref.exe
+PANDOC:= $(CABAL)/bin/pandoc.exe
+else
+CABAL = $(HOME)/.cabal
+PCROSSREF = $(CABAL)/bin/pandoc-crossref
+PANDOC:= $(CABAL)/bin/pandoc
+endif
+
+# CABAL = $(HOME)/.cabal
+# PANDOC= $(CABAL)/bin/pandoc.exe
+PANSTYLES= $(HOME)/.pandoc
+MISC= $(PANSTYLES)/pandoc_misc
+
+REFERENCE= $(PANSTYLES)/ref.docx
+
+SVN=
+SVNDIR=
+REPO= ${PWD##*/}
+
+PANFLAGS= -s -S
+PFLAGS += --read=markdown+east_asian_line_breaks
+# +implicit_figures+inline_code_attributes+header_attributes+escaped_line_breaks
+PFLAGS += --filter $(PCROSSREF)
+
+PYTHON= python
+CSV2TABLE= $(MISC)/csv2mdtable.py
+FILTER= $(MISC)/include.py
+DOCXPWRTR:=
