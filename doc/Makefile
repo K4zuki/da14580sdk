@@ -1,0 +1,1 @@
+/home/yamamoto/.pandoc/pandoc_misc/Makefile
