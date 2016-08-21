@@ -3,7 +3,7 @@ DA14580 C++ porting to use Dialog Semiconductor DA14580/1/2/3 peripheral.
 
 **Requires DA1458x SDK 5**
 
-mbed^TM^ style porting
+mbed<sup>TM</sup> style porting
 
 ## Sample
 ```{.c++}
@@ -50,7 +50,7 @@ DigitalInOut( PinName pin, PinDirection direction,
 ```
 ### Serial(\*)
 ```{.c++}
-    Serial(PinName tx, PinName rx);
+Serial(PinName tx, PinName rx);
 ```
 <sub>(\*): limited implementation</sub>
 
