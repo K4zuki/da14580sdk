@@ -1,131 +1,143 @@
 /*
-MIT License
-see LICENSE file
+Copyright (c) 2016 Kazuki Yamamoto <k.yamamoto.08136891@gmail.com>
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files
+(the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of the Software,
+and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include "myspi.h"
+#include "myspi.h"  //NOLINT
 
-SPI::SPI(PinName mosi_pin, PinName miso_pin, PinName sclk_pin){
-    SetBits16(PMU_CTRL_REG, PERIPH_SLEEP,0);       // exit peripheral power down
+SPI::SPI(PinName mosi_pin, PinName miso_pin, PinName sclk_pin) {
+  SetBits16(PMU_CTRL_REG, PERIPH_SLEEP, 0);  // exit peripheral power down
 
-    // GPIO_ConfigurePin( SPI_GPIO_PORT, SPI_CS_PIN,  OUTPUT, PID_SPI_EN, true );
-    _port = (GPIO_PORT)(mosi_pin >> 8);
-    _pin =  (GPIO_PIN) (mosi_pin & 0xFF);
-    GPIO_ConfigurePin( _port, _pin,  OUTPUT, PID_SPI_DO, false );
+  // GPIO_ConfigurePin( SPI_GPIO_PORT, SPI_CS_PIN,  OUTPUT, PID_SPI_EN, true );
+  _port = (GPIO_PORT)(mosi_pin >> 8);
+  _pin = (GPIO_PIN)(mosi_pin & 0xFF);
+  GPIO_ConfigurePin(_port, _pin, OUTPUT, PID_SPI_DO, false);
 
-    _port = (GPIO_PORT)(miso_pin >> 8);
-    _pin =  (GPIO_PIN) (miso_pin & 0xFF);
-    GPIO_ConfigurePin( _port, _pin,  INPUT, PID_SPI_DI, false );
+  _port = (GPIO_PORT)(miso_pin >> 8);
+  _pin = (GPIO_PIN)(miso_pin & 0xFF);
+  GPIO_ConfigurePin(_port, _pin, INPUT, PID_SPI_DI, false);
 
-    _port = (GPIO_PORT)(sclk_pin >> 8);
-    _pin =  (GPIO_PIN) (sclk_pin & 0xFF);
-    GPIO_ConfigurePin( _port, _pin, OUTPUT, PID_SPI_CLK, false );
+  _port = (GPIO_PORT)(sclk_pin >> 8);
+  _pin = (GPIO_PIN)(sclk_pin & 0xFF);
+  GPIO_ConfigurePin(_port, _pin, OUTPUT, PID_SPI_CLK, false);
 
-    /* initialize SPI */
-    // enable clock for SPI
-    SetBits16(CLK_PER_REG, SPI_ENABLE, 1);
-    // close SPI block, if opened
-    SetBits16(SPI_CTRL_REG, SPI_ON, 0);
-    // select role (master/slave)
-    SetBits16(SPI_CTRL_REG, SPI_SMN, SPI_ROLE_MASTER);
-    // enable/disable SPI interrupt to the NVIC
-    SetBits16(SPI_CTRL_REG, SPI_MINT, SPI_MINT_DISABLE);
-     // SPI block clock divider
-    SetBits16(SPI_CTRL_REG, SPI_CLK, SPI_XTAL_DIV_2);
-    // set SPI bitmode
-    SetBits16(SPI_CTRL_REG, SPI_WORD, SPI_MODE_8BIT);
-    // select SPI clock idle polarity
-    SetBits16(SPI_CTRL_REG, SPI_POL, SPI_CLK_IDLE_POL_LOW);
-    // select SPI sampling edge selection  (pha_mode - refer to datasheet p.53-54)
-    SetBits16(SPI_CTRL_REG, SPI_PHA, SPI_PHA_MODE_0);
-    // enable SPI block
-    SetBits16(SPI_CTRL_REG, SPI_ON, 1);
+  /* initialize SPI */
+  // enable clock for SPI
+  SetBits16(CLK_PER_REG, SPI_ENABLE, 1);
+  // close SPI block, if opened
+  SetBits16(SPI_CTRL_REG, SPI_ON, 0);
+  // select role (master/slave)
+  SetBits16(SPI_CTRL_REG, SPI_SMN, SPI_ROLE_MASTER);
+  // enable/disable SPI interrupt to the NVIC
+  SetBits16(SPI_CTRL_REG, SPI_MINT, SPI_MINT_DISABLE);
+  // SPI block clock divider
+  SetBits16(SPI_CTRL_REG, SPI_CLK, SPI_XTAL_DIV_2);
+  // set SPI bitmode
+  SetBits16(SPI_CTRL_REG, SPI_WORD, SPI_MODE_8BIT);
+  // select SPI clock idle polarity
+  SetBits16(SPI_CTRL_REG, SPI_POL, SPI_CLK_IDLE_POL_LOW);
+  // select SPI sampling edge selection  (pha_mode - refer to datasheet p.53-54)
+  SetBits16(SPI_CTRL_REG, SPI_PHA, SPI_PHA_MODE_0);
+  // enable SPI block
+  SetBits16(SPI_CTRL_REG, SPI_ON, 1);
 }
 
 /** Destructor */
-SPI::~SPI(){
-
-}
+SPI::~SPI() {}
 
 /** Specify SPI format
  *
  *  @param bits  8, 9, 16 or 32
  *  @param mode  0, 1, 2, or 3 phase (bit1) and idle clock (bit0)
  */
-void SPI::format(int bits, int mode){
-    // // close SPI block, if opened
-    // SetBits16(SPI_CTRL_REG, SPI_ON, 0);
-    switch(bits){
-        case 8:
-            this->bits = SPI_MODE_8BIT;
-            break;
-        case 9:
-            this->bits = SPI_MODE_9BIT;
-            break;
-        case 16:
-            this->bits = SPI_MODE_16BIT;
-            break;
-        case 32:
-            this->bits = SPI_MODE_32BIT;
-            break;
-        default:
-            this->bits = SPI_MODE_8BIT;
-            break;
-    }
-    // set SPI bitmode
-    SetBits16(SPI_CTRL_REG, SPI_WORD, this->bits);
+void SPI::format(int bits, int mode) {
+  // // close SPI block, if opened
+  // SetBits16(SPI_CTRL_REG, SPI_ON, 0);
+  switch (bits) {
+    case 8:
+      this->bits = SPI_MODE_8BIT;
+      break;
+    case 9:
+      this->bits = SPI_MODE_9BIT;
+      break;
+    case 16:
+      this->bits = SPI_MODE_16BIT;
+      break;
+    case 32:
+      this->bits = SPI_MODE_32BIT;
+      break;
+    default:
+      this->bits = SPI_MODE_8BIT;
+      break;
+  }
+  // set SPI bitmode
+  SetBits16(SPI_CTRL_REG, SPI_WORD, this->bits);
 
-    switch(mode){
-        case 0:
-            this->phase = SPI_PHA_MODE_0;
-            this->polarity = SPI_CLK_IDLE_POL_LOW;
-            break;
-        case 1:
-            this->phase = SPI_PHA_MODE_0;
-            this->polarity = SPI_CLK_IDLE_POL_HIGH;
-            break;
-        case 2:
-            this->phase = SPI_PHA_MODE_1;
-            this->polarity = SPI_CLK_IDLE_POL_LOW;
-            break;
-        case 3:
-            this->phase = SPI_PHA_MODE_1;
-            this->polarity = SPI_CLK_IDLE_POL_HIGH;
-            break;
-        default:
-            this->phase = SPI_PHA_MODE_0;
-            this->polarity = SPI_CLK_IDLE_POL_LOW;
-            break;
-    }
-    // select SPI sampling edge selection  (pha_mode - refer to datasheet p.53-54)
-    SetBits16(SPI_CTRL_REG, SPI_PHA, this->phase);
-    // select SPI clock idle polarity
-    SetBits16(SPI_CTRL_REG, SPI_POL, this->polarity);
-    // enable SPI block
-    SetBits16(SPI_CTRL_REG, SPI_ON, 1);
-
+  switch (mode) {
+    case 0:
+      this->phase = SPI_PHA_MODE_0;
+      this->polarity = SPI_CLK_IDLE_POL_LOW;
+      break;
+    case 1:
+      this->phase = SPI_PHA_MODE_0;
+      this->polarity = SPI_CLK_IDLE_POL_HIGH;
+      break;
+    case 2:
+      this->phase = SPI_PHA_MODE_1;
+      this->polarity = SPI_CLK_IDLE_POL_LOW;
+      break;
+    case 3:
+      this->phase = SPI_PHA_MODE_1;
+      this->polarity = SPI_CLK_IDLE_POL_HIGH;
+      break;
+    default:
+      this->phase = SPI_PHA_MODE_0;
+      this->polarity = SPI_CLK_IDLE_POL_LOW;
+      break;
+  }
+  // select SPI sampling edge selection  (pha_mode - refer to datasheet p.53-54)
+  SetBits16(SPI_CTRL_REG, SPI_PHA, this->phase);
+  // select SPI clock idle polarity
+  SetBits16(SPI_CTRL_REG, SPI_POL, this->polarity);
+  // enable SPI block
+  SetBits16(SPI_CTRL_REG, SPI_ON, 1);
 }
 
 /** Specify SPI clock frequency
  *
  *  @param hz  frequency (optional, defaults to 10000000)
  */
-void SPI::frequency(int hz){
-    // // close SPI block, if opened
-    // SetBits16(SPI_CTRL_REG, SPI_ON, 0);
-    if (hz <= 1000000){
-        this->freq = SPI_XTAL_DIV_14;
-    }else if(hz <= 2000000){
-        this->freq = SPI_XTAL_DIV_8;
-    }else if(hz <= 4000000){
-        this->freq = SPI_XTAL_DIV_4;
-    }else{
-        this->freq = SPI_XTAL_DIV_2;
-    }
-     // SPI block clock divider
-    SetBits16(SPI_CTRL_REG, SPI_CLK, this->freq);
-    // enable SPI block
-    SetBits16(SPI_CTRL_REG, SPI_ON, 1);
+void SPI::frequency(int hz) {
+  // // close SPI block, if opened
+  // SetBits16(SPI_CTRL_REG, SPI_ON, 0);
+  if (hz <= 1000000) {
+    this->freq = SPI_XTAL_DIV_14;
+  } else if (hz <= 2000000) {
+    this->freq = SPI_XTAL_DIV_8;
+  } else if (hz <= 4000000) {
+    this->freq = SPI_XTAL_DIV_4;
+  } else {
+    this->freq = SPI_XTAL_DIV_2;
+  }
+  // SPI block clock divider
+  SetBits16(SPI_CTRL_REG, SPI_CLK, this->freq);
+  // enable SPI block
+  SetBits16(SPI_CTRL_REG, SPI_ON, 1);
 }
 
 /** Write data and read result
@@ -133,45 +145,45 @@ void SPI::frequency(int hz){
  *  @param value  data to write (see format for bit size)
  *  returns value read from device
  */
-int SPI::write(int value){
-    uint32_t read = 0;
-    switch(this->bits){
-        case SPI_MODE_8BIT:
-            break;
-        case SPI_MODE_9BIT:
-            SetWord16(SPI_RX_TX_REG1, (uint16_t)(value >> 16));
-            break;
-        case SPI_MODE_16BIT:
-            break;
-        case SPI_MODE_32BIT:
-            SetWord16(SPI_RX_TX_REG1, (uint16_t)(value >> 16));
-            break;
-    }
-    // write (low part of) dataToSend
-    SetWord16(SPI_RX_TX_REG0, (uint16_t)value);
-    // polling to wait for spi transmission
-    do{
-    } while (GetBits16(SPI_CTRL_REG, SPI_INT_BIT) == 0);
-    // clear pending flag
-    SetWord16(SPI_CLEAR_INT_REG, 0x01);
-    switch(this->bits){
-        case SPI_MODE_8BIT:
-            break;
-        case SPI_MODE_9BIT:
-            // read high part of data from spi slave
-            read = GetWord16(SPI_RX_TX_REG1) << 16;
-            break;
-        case SPI_MODE_16BIT:
-            break;
-        case SPI_MODE_32BIT:
-            // read high part of data from spi slave
-            read = GetWord16(SPI_RX_TX_REG1) << 16;
-            break;
-    }
-    //read (low part of) data from spi slave
-    read |= GetWord16(SPI_RX_TX_REG0);
+int SPI::write(int value) {
+  uint32_t read = 0;
+  switch (this->bits) {
+    case SPI_MODE_8BIT:
+      break;
+    case SPI_MODE_9BIT:
+      SetWord16(SPI_RX_TX_REG1, (uint16_t)(value >> 16));
+      break;
+    case SPI_MODE_16BIT:
+      break;
+    case SPI_MODE_32BIT:
+      SetWord16(SPI_RX_TX_REG1, (uint16_t)(value >> 16));
+      break;
+  }
+  // write (low part of) dataToSend
+  SetWord16(SPI_RX_TX_REG0, (uint16_t)value);
+  // polling to wait for spi transmission
+  do {
+  } while (GetBits16(SPI_CTRL_REG, SPI_INT_BIT) == 0);
+  // clear pending flag
+  SetWord16(SPI_CLEAR_INT_REG, 0x01);
+  switch (this->bits) {
+    case SPI_MODE_8BIT:
+      break;
+    case SPI_MODE_9BIT:
+      // read high part of data from spi slave
+      read = GetWord16(SPI_RX_TX_REG1) << 16;
+      break;
+    case SPI_MODE_16BIT:
+      break;
+    case SPI_MODE_32BIT:
+      // read high part of data from spi slave
+      read = GetWord16(SPI_RX_TX_REG1) << 16;
+      break;
+  }
+  // read (low part of) data from spi slave
+  read |= GetWord16(SPI_RX_TX_REG0);
 
-    return (int)read;
+  return (int)read;
 }
 /*
 uint32_t spi_access(uint32_t dataToSend)
@@ -181,26 +193,33 @@ uint32_t dataRead = 0;
 
  bitmode = GetBits16(SPI_CTRL_REG, SPI_WORD);      // get SPI word mode
 
-if (bitmode > SPI_MODE_16BIT)              // check if bitmode is set in 9-bit or 32-bit
+if (bitmode > SPI_MODE_16BIT)              // check if bitmode is set in 9-bit
+or 32-bit
 {
-  SetWord16(SPI_RX_TX_REG1, (uint16_t)(dataToSend >> 16));  // write high part of dataToSend
+  SetWord16(SPI_RX_TX_REG1, (uint16_t)(dataToSend >> 16));  // write high part
+of dataToSend
 }
 
-SetWord16(SPI_RX_TX_REG0, (uint16_t)dataToSend);    // write (low part of) dataToSend
+SetWord16(SPI_RX_TX_REG0, (uint16_t)dataToSend);    // write (low part of)
+dataToSend
 
  do
 {
-} while (GetBits16(SPI_CTRL_REG, SPI_INT_BIT) == 0);  // polling to wait for spi transmission
+} while (GetBits16(SPI_CTRL_REG, SPI_INT_BIT) == 0);  // polling to wait for spi
+transmission
 
 SetWord16(SPI_CLEAR_INT_REG, 0x01);            // clear pending flag
 
 // Read from Registers
-if (bitmode > SPI_MODE_16BIT)              // check if bitmode is set in 9-bit or 32-bit
+if (bitmode > SPI_MODE_16BIT)              // check if bitmode is set in 9-bit
+or 32-bit
 {
-  dataRead = GetWord16(SPI_RX_TX_REG1) << 16;      // read high part of data from spi slave
+  dataRead = GetWord16(SPI_RX_TX_REG1) << 16;      // read high part of data
+from spi slave
 }
 
-dataRead += GetWord16(SPI_RX_TX_REG0);          //read (low part of) data from spi slave
+dataRead += GetWord16(SPI_RX_TX_REG0);          //read (low part of) data from
+spi slave
 
 return dataRead;                    // return data read from spi slave
 }
