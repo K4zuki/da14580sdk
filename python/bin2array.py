@@ -22,8 +22,8 @@ outputStr = 'static const uint8_t loader[] = {\n'
 
 n = 0
 for x in inputData:
-    outputStr += "0x" + hex( ord(x) )[2:].zfill(2) + ", "
-    n+=1
+    outputStr += "0x" + hex(ord(x))[2:].zfill(2) + ", "
+    n += 1
     if n >= nInLine:
         outputStr += '\n'
         n = 0
